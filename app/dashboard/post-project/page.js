@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { supabase } from '../../lib/supabaseClient'
+import { supabase } from '../../../lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 
 export default function PostProject() {
@@ -68,7 +68,7 @@ export default function PostProject() {
         try {
           const fileExt = file.name.split('.').pop()
           const fileName = `${user.id}-${Date.now()}.${fileExt}`
-          const { data: uploadData, error: uploadError } = await supabase.storage
+          const { error: uploadError } = await supabase.storage
             .from('project-images')
             .upload(fileName, file)
 

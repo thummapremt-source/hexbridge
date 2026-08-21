@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -14,7 +14,7 @@ const loadRazorpayScript = () => {
   })
 }
 
-export default function PlaceBid() {
+function PlaceBidContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const projectId = searchParams.get('projectId')
@@ -259,5 +259,13 @@ export default function PlaceBid() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function PlaceBid() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-100 flex items-center justify-center">Loading project...</div>}>
+      <PlaceBidContent />
+    </Suspense>
   )
 }
