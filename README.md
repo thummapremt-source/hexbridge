@@ -1,3 +1,14 @@
+
+## Mobile Apps with Capacitor
+
+HexBridge uses Capacitor to package the existing Next.js app for Android and iOS. Because the app uses Next.js API routes and Supabase, the native shells load the deployed web app rather than a static export.
+
+1. Set `CAPACITOR_SERVER_URL` to the deployed HexBridge URL in your environment.
+2. Run `npm run cap:sync`.
+3. Run `npm run cap:android` on Windows or macOS with Android Studio installed.
+4. Run `npm run cap:ios` on macOS with Xcode installed.
+
+Build and sign the Android app in Android Studio for Google Play, and the iOS app in Xcode for the App Store.
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

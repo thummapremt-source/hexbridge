@@ -2,6 +2,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Sidebar from '../../../components/Sidebar'
 
 // Load Razorpay script
 const loadRazorpayScript = () => {
@@ -26,6 +27,8 @@ function PlaceBidContent() {
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [bidFee, setBidFee] = useState(0)
+  const [bidCredits, setBidCredits] = useState(0)
+  const [creditsReady, setCreditsReady] = useState(false)
 
   useEffect(() => {
     if (!projectId) {
@@ -55,14 +58,30 @@ function PlaceBidContent() {
 
         if (settings) {
           const feeMap = {
-            'single_room': settings.single_room_fee || 150,
+            single_room: settings.single_room_fee || 150,
             '1bhk': settings.fee_1bhk || 250,
             '2bhk': settings.fee_2bhk || 400,
             '3bhk': settings.fee_3bhk || 550,
             '4bhk': settings.fee_4bhk || 700,
-            '5bhk_plus': settings.fee_5bhk_plus || 900
+            '5bhk_plus': settings.fee_5bhk_plus || 900,
+            commercial_space: settings.commercial_project_fee || 600,
+            others: settings.others_project_fee || 250
           }
           setBidFee(feeMap[data.project_type] || 250)
+        }
+
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('bid_credits')
+            .eq('id', user.id)
+            .single()
+
+          if (!profileError) {
+            setBidCredits(profile?.bid_credits || 0)
+            setCreditsReady(true)
+          }
         }
       } catch (err) {
         console.error('Error:', err)
@@ -102,6 +121,41 @@ function PlaceBidContent() {
         return
       }
 
+      const bidPayload = {
+        project_id: projectId,
+        designer_id: user.id,
+        bid_amount: parseInt(bidAmount),
+        timeline_days: parseInt(timelineDays),
+        message: message,
+        status: 'pending',
+      }
+
+      const saveBidWithCredits = async () => {
+        const { error: consumeError } = await supabase.rpc('consume_bid_credit')
+        if (consumeError) throw consumeError
+
+        const { error: bidError } = await supabase
+          .from('bids')
+          .insert({ ...bidPayload, razorpay_payment_id: `bid_credit_${Date.now()}` })
+
+        if (bidError) {
+          await supabase.rpc('refund_bid_credit')
+          throw bidError
+        }
+
+        setBidCredits((currentCredits) => currentCredits - 1)
+        alert('✅ Bid credit used! Your bid has been placed.')
+        router.push('/dashboard/browse')
+      }
+
+      if (creditsReady && bidCredits > 0) {
+        if (bidCredits < 1) {
+          throw new Error('You do not have any bid credits. Buy a package or choose direct payment.')
+        }
+        await saveBidWithCredits()
+        return
+      }
+
       // Load Razorpay
       const scriptLoaded = await loadRazorpayScript()
       if (!scriptLoaded) {
@@ -117,11 +171,31 @@ function PlaceBidContent() {
         body: JSON.stringify({ amount: bidFee })
       })
 
-      const { orderId, error } = await response.json()
+      const { orderId, error, mock } = await response.json()
       if (error) {
         alert('Failed to create payment: ' + error)
         setSubmitting(false)
         return
+      }
+
+      if (mock) {
+        try {
+          const { error: bidError } = await supabase
+            .from('bids')
+            .insert({ ...bidPayload,
+              razorpay_payment_id: `mock_payment_${Date.now()}`
+            })
+
+          if (bidError) throw bidError
+
+          alert('✅ Mock payment successful! Your bid has been placed.')
+          router.push('/dashboard/browse')
+          return
+        } catch (err) {
+          console.error('Error saving mocked bid:', err)
+          alert('Mock payment succeeded but failed to save bid. Please contact support.')
+          return
+        }
       }
 
       // Open Razorpay checkout
@@ -137,13 +211,7 @@ function PlaceBidContent() {
           try {
             const { error: bidError } = await supabase
               .from('bids')
-              .insert({
-                project_id: projectId,
-                designer_id: user.id,
-                bid_amount: parseInt(bidAmount),
-                timeline_days: parseInt(timelineDays),
-                message: message,
-                status: 'pending',
+              .insert({ ...bidPayload,
                 razorpay_payment_id: response.razorpay_payment_id
               })
 
@@ -187,7 +255,9 @@ function PlaceBidContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen bg-gray-100 flex">
+      <Sidebar />
+      <div className="flex-1 p-6 ml-64">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
           <h1 className="text-2xl font-bold text-[#1a2a3a]">📋 Place a Bid</h1>
@@ -244,7 +314,7 @@ function PlaceBidContent() {
 
             <div className="bg-[#fef9e7] p-4 rounded-lg border border-[#d4a843]">
               <p className="text-sm text-gray-700">
-                💰 <span className="font-bold">Bid Fee: ₹{bidFee}</span> will be charged to place this bid.
+                💰 <span className="font-bold">{creditsReady && bidCredits > 0 ? '1 bid credit' : `Bid Fee: ₹${bidFee}`}</span> will be used to place this bid.
               </p>
             </div>
 
@@ -253,10 +323,11 @@ function PlaceBidContent() {
               disabled={submitting}
               className="w-full bg-[#d4a843] text-white py-3 rounded-lg font-bold hover:bg-[#c49a3a] transition disabled:opacity-50"
             >
-              {submitting ? 'Processing...' : `💰 Pay ₹${bidFee} & Submit Bid`}
+              {submitting ? 'Processing...' : creditsReady && bidCredits > 0 ? 'Use Credit & Submit Bid' : `💰 Pay ₹${bidFee} & Submit Bid`}
             </button>
           </form>
         </div>
+      </div>
       </div>
     </div>
   )

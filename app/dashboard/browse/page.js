@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
 import { useRouter } from 'next/navigation'
+import Sidebar from '../../../components/Sidebar'
 
 export default function BrowseProjects() {
   const router = useRouter()
@@ -60,8 +61,10 @@ export default function BrowseProjects() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gray-100 flex">
+      <Sidebar />
+      <div className="flex-1 p-6 ml-64">
+        <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold text-[#1a2a3a] mb-6">🛠️ Available Projects</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {projects.map((project) => (
@@ -74,6 +77,7 @@ export default function BrowseProjects() {
               <div className="mt-3 space-y-1 text-sm text-gray-500">
                 <p><span className="font-semibold">Type:</span> {project.project_type.replace('_', ' ').toUpperCase()}</p>
                 <p><span className="font-semibold">Location:</span> {project.location}</p>
+                <p><span className="font-semibold">Timeline:</span> {project.timeline_days ? `${project.timeline_days} days` : 'Not specified'}</p>
                 {project.plywood_brands?.length > 0 && (
                   <p><span className="font-semibold">Plywood:</span> {project.plywood_brands.join(', ')}</p>
                 )}
@@ -88,6 +92,7 @@ export default function BrowseProjects() {
             </div>
           ))}
         </div>
+      </div>
       </div>
     </div>
   )

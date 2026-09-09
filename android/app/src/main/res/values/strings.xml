@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">HexBridge</string>
+    <string name="title_activity_main">HexBridge</string>
+    <string name="package_name">com.hexbridge.app</string>
+    <string name="custom_url_scheme">com.hexbridge.app</string>
+</resources>

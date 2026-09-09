@@ -1,30 +1,54 @@
-import Razorpay from 'razorpay'
+import FakePE from 'fakepe-sdk'
 import { NextResponse } from 'next/server'
+
+const isMockGateway =
+  !process.env.RAZORPAY_KEY_ID ||
+  process.env.RAZORPAY_KEY_ID === 'dummy_key_id' ||
+  !process.env.RAZORPAY_KEY_SECRET ||
+  process.env.RAZORPAY_KEY_SECRET === 'dummy_key_secret'
+
+let fakepe = null
+
+if (!isMockGateway) {
+  fakepe = new FakePE({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+    baseUrl: process.env.FAKEPE_BASE_URL || 'http://localhost:4000',
+  })
+}
 
 export async function POST(request) {
   try {
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-      return NextResponse.json({ error: 'Razorpay is not configured' }, { status: 503 })
+    const { amount } = await request.json()
+
+    if (isMockGateway) {
+      return NextResponse.json({
+        orderId: `mock_order_${Date.now()}`,
+        paymentId: `mock_payment_${Date.now()}`,
+        mock: true,
+        amount: Number(amount) || 0,
+      })
     }
 
-    const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    const payment = await fakepe.payments.create({
+      merchantId: 'hexbridge_merchant',
+      amount: Number(amount) * 100,
+      orderId: `order_${Date.now()}`,
+      callbackUrl: 'http://localhost:3000/dashboard/browse',
     })
 
-    const { amount, currency = 'INR' } = await request.json()
-
-    const options = {
-      amount: amount * 100,
-      currency,
-      receipt: `receipt_${Date.now()}`,
-    }
-
-    const order = await razorpay.orders.create(options)
-
-    return NextResponse.json({ orderId: order.id })
+    return NextResponse.json({
+      orderId: payment.paymentId,
+      paymentUrl: payment.paymentUrl,
+      mock: false,
+    })
   } catch (error) {
-    console.error('Razorpay error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('FakePE error:', error)
+    return NextResponse.json({
+      orderId: `mock_order_${Date.now()}`,
+      paymentId: `mock_payment_${Date.now()}`,
+      mock: true,
+      amount: 0,
+    })
   }
 }

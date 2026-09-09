@@ -1,7 +1,7 @@
 import './globals.css'
 
 export const metadata = {
-  title: 'HexBridge - Bridge. Build. Bid.',
+  title: 'HexBridge - Connecting Homes & Designers',
   description: 'Connect with interior designers and contractors',
 }
 
