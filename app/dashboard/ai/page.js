@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabaseClient'
+import { useRouter } from 'next/navigation'
+import Sidebar from '../../../components/Sidebar'
 
 export default function AIAssistantPage() {
   const router = useRouter()
@@ -78,9 +79,11 @@ export default function AIAssistantPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f3f4f6] p-6 text-[#1a2a3a]">
+    <div className="min-h-screen bg-[#f3f4f6] text-[#1a2a3a] lg:flex">
+      <Sidebar />
+      <main className="min-w-0 flex-1 p-4 sm:p-6 lg:ml-64">
       <div className="mx-auto max-w-3xl">
-        <div className="mb-6 flex items-center justify-between gap-4">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#d4a843]">HexBridge AI</p>
             <h1 className="mt-2 text-3xl font-semibold">Project Assistant</h1>
@@ -94,7 +97,7 @@ export default function AIAssistantPage() {
           </button>
         </div>
 
-        <div className="rounded-3xl bg-white p-6 shadow-[0_18px_45px_rgba(17,17,17,0.08)] ring-1 ring-black/5">
+        <div className="rounded-3xl bg-white p-4 shadow-[0_18px_45px_rgba(17,17,17,0.08)] ring-1 ring-black/5 sm:p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <label className="block text-sm font-medium text-[#1a2a3a]">Ask for design ideas, project planning, or a bid review</label>
             <textarea
@@ -105,7 +108,7 @@ export default function AIAssistantPage() {
               className="w-full rounded-2xl border border-[#dfe2e6] bg-[#f9f9fb] p-4 text-base text-[#1a2a3a] outline-none focus:border-[#d4a843] focus:ring-2 focus:ring-[#d4a843]/25"
             />
 
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="text-sm text-[#6e6e73]">Powered by DeepSeek</div>
               <button
                 type="submit"
@@ -130,6 +133,7 @@ export default function AIAssistantPage() {
           )}
         </div>
       </div>
+      </main>
     </div>
   )
 }

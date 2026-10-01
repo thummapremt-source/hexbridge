@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -47,7 +48,7 @@ export default function LoginPage() {
           if (data.user) {
             const { error: profileError } = await supabase
               .from('profiles')
-              .insert({ id: data.user.id, full_name: fullName, phone, role })
+              .upsert({ id: data.user.id, full_name: fullName, phone, role }, { onConflict: 'id' })
             if (profileError) throw profileError
           }
 
@@ -75,7 +76,7 @@ export default function LoginPage() {
               id: loginData.user.id,
               full_name: loginData.user.user_metadata?.full_name || email.split('@')[0],
               phone: loginData.user.phone || '',
-              role: loginData.user.user_metadata?.role || 'homeowner',
+              role: loginData.user.user_metadata?.role === 'designer' ? 'designer' : 'homeowner',
             }, { onConflict: 'id' })
 
           if (profileInsertError) {
@@ -153,39 +154,51 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f] px-4 py-8 sm:px-8">
+    <main className="min-h-screen bg-[#f5f5f7] px-4 py-8 text-[#1d1d1f] sm:px-8">
       <div className="mx-auto w-full max-w-md">
         <section>
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#d4a843]">Connecting Homes &amp; Designers</p>
-          <h1 className="mt-3 text-5xl font-semibold tracking-tight text-[#1a2a3a]">HexBridge</h1>
-          <p className="mt-4 text-lg text-[#86868b]">{isSignup ? 'Create an account with email or Mobile OTP.' : 'Sign in with email or Mobile OTP.'}</p>
+          <Link href="/" className="text-sm font-semibold uppercase tracking-[0.2em] text-[#d4a843]">
+            Connecting Homes &amp; Designers
+          </Link>
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-[#1a2a3a] sm:text-5xl">HexBridge</h1>
+          <p className="mt-4 text-lg text-[#86868b]">
+            {forgotPassword
+              ? 'Reset your password.'
+              : isSignup
+                ? 'Create an account with email or Mobile OTP.'
+                : 'Sign in with email or Mobile OTP.'}
+          </p>
 
-          <div className="mt-8 grid grid-cols-2 gap-2 rounded-2xl bg-white p-1 shadow-sm ring-1 ring-black/5">
-            <button
-              type="button"
-              onClick={() => { setLoginMethod('email'); setOtpSent(false); setError('') }}
-              className={`rounded-xl py-3 text-sm font-semibold transition ${loginMethod === 'email' ? 'bg-[#1a2a3a] text-white' : 'text-[#6e6e73] hover:bg-[#f3f4f6]'}`}
-            >
-              Email Login
-            </button>
-            <button
-              type="button"
-              onClick={() => { setLoginMethod('phone'); setError('') }}
-              className={`rounded-xl py-3 text-sm font-semibold transition ${loginMethod === 'phone' ? 'bg-[#1a2a3a] text-white' : 'text-[#6e6e73] hover:bg-[#f3f4f6]'}`}
-            >
-              Mobile OTP
-            </button>
+          <div className="mt-8">
+            {!forgotPassword && (
+              <div className="grid grid-cols-2 gap-2 rounded-2xl bg-white p-1 shadow-sm ring-1 ring-black/5">
+                <button
+                  type="button"
+                  onClick={() => { setLoginMethod('email'); setOtpSent(false); setError('') }}
+                  className={`rounded-xl py-3 text-sm font-semibold transition ${loginMethod === 'email' ? 'bg-[#1a2a3a] text-white' : 'text-[#6e6e73] hover:bg-[#f3f4f6]'}`}
+                >
+                  Email Login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setLoginMethod('phone'); setError('') }}
+                  className={`rounded-xl py-3 text-sm font-semibold transition ${loginMethod === 'phone' ? 'bg-[#1a2a3a] text-white' : 'text-[#6e6e73] hover:bg-[#f3f4f6]'}`}
+                >
+                  Mobile OTP
+                </button>
+              </div>
+            )}
           </div>
 
           {forgotPassword ? (
-            <form onSubmit={handlePasswordReset} className="mt-10 space-y-4">
+            <form onSubmit={handlePasswordReset} className="mt-8 space-y-4">
               {resetSent ? (
                 <>
-                  <p className="text-center text-[#6e6e73]">Password reset instructions have been sent to your email.</p>
+                  <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">Password reset instructions have been sent to your email.</p>
                   <button
                     type="button"
                     onClick={() => { setForgotPassword(false); setResetSent(false); setError('') }}
-                    className="mx-auto block text-sm font-semibold text-[#d4a843] hover:underline"
+                    className="w-full rounded-xl px-4 py-3 text-sm font-semibold text-[#8c6a22] transition hover:bg-amber-50"
                   >
                     Back to Sign In
                   </button>
@@ -197,22 +210,23 @@ export default function LoginPage() {
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="Email address"
-                    className="w-full rounded-2xl bg-white px-5 py-4 text-lg text-[#1d1d1f] shadow-sm outline-none ring-1 ring-black/5 placeholder:text-[#86868b] focus:ring-[#0071e3]"
+                    aria-label="Email address"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-base text-[#1a2a3a] outline-none transition placeholder:text-slate-400 focus:border-[#d4a843] focus:ring-4 focus:ring-[#d4a843]/15"
                     required
                     disabled={loading}
                   />
-                  {error && <p className="text-sm text-red-600">{error}</p>}
+                  {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
                   <button
                     type="submit"
                     disabled={loading}
-                    className="mx-auto block rounded-full bg-[#d4a843] px-12 py-4 text-lg font-semibold text-white shadow-[0_8px_20px_rgba(212,168,67,0.25)] transition hover:bg-[#c49a3a] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="w-full rounded-xl bg-[#d4a843] px-6 py-4 text-base font-bold text-[#1a2a3a] shadow-lg shadow-[#d4a843]/25 transition duration-200 hover:-translate-y-0.5 hover:bg-[#e1b951] hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {loading ? 'Sending...' : 'Send Reset Link'}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setForgotPassword(false); setError('') }}
-                    className="mx-auto block text-sm font-semibold text-[#d4a843] hover:underline"
+                    className="w-full rounded-xl px-4 py-3 text-sm font-semibold text-[#8c6a22] transition hover:bg-amber-50"
                   >
                     Back to Sign In
                   </button>
@@ -220,126 +234,142 @@ export default function LoginPage() {
               )}
             </form>
           ) : (
-          <form onSubmit={handleSubmit} className="mt-10 space-y-4">
-            {loginMethod === 'email' ? (
-              <>
-                {isSignup && (
-                  <>
+            <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+              {loginMethod === 'email' ? (
+                <>
+                  {isSignup && (
+                    <>
+                      <input
+                        type="text"
+                        value={fullName}
+                        onChange={(event) => setFullName(event.target.value)}
+                        placeholder="Full name"
+                        aria-label="Full name"
+                        autoComplete="name"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-base text-[#1a2a3a] outline-none transition placeholder:text-slate-400 focus:border-[#d4a843] focus:ring-4 focus:ring-[#d4a843]/15"
+                        required
+                        disabled={loading}
+                      />
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(event) => setPhone(event.target.value)}
+                        placeholder="Phone number"
+                        aria-label="Phone number"
+                        autoComplete="tel"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-base text-[#1a2a3a] outline-none transition placeholder:text-slate-400 focus:border-[#d4a843] focus:ring-4 focus:ring-[#d4a843]/15"
+                        required
+                        disabled={loading}
+                      />
+                      <select
+                        value={role}
+                        onChange={(event) => setRole(event.target.value)}
+                        aria-label="Account type"
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-base text-[#1a2a3a] outline-none transition focus:border-[#d4a843] focus:ring-4 focus:ring-[#d4a843]/15"
+                      >
+                        <option value="homeowner">Homeowner</option>
+                        <option value="designer">Designer / Contractor</option>
+                      </select>
+                    </>
+                  )}
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="Email address"
+                    aria-label="Email address"
+                    autoComplete="email"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-base text-[#1a2a3a] outline-none transition placeholder:text-slate-400 focus:border-[#d4a843] focus:ring-4 focus:ring-[#d4a843]/15"
+                    required
+                    disabled={loading}
+                  />
+                  <div className="relative">
                     <input
-                      type="text"
-                      value={fullName}
-                      onChange={(event) => setFullName(event.target.value)}
-                      placeholder="Full name"
-                      className="w-full rounded-2xl bg-white px-5 py-4 text-lg text-[#1d1d1f] shadow-sm outline-none ring-1 ring-black/5 placeholder:text-[#86868b] focus:ring-[#0071e3]"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      placeholder="Password"
+                      aria-label="Password"
+                      autoComplete={isSignup ? 'new-password' : 'current-password'}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 pr-20 text-base text-[#1a2a3a] outline-none transition placeholder:text-slate-400 focus:border-[#d4a843] focus:ring-4 focus:ring-[#d4a843]/15"
                       required
                       disabled={loading}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((visible) => !visible)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-sm font-semibold text-[#8c6a22] transition hover:bg-amber-50"
+                    >
+                      {showPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 focus-within:border-[#d4a843] focus-within:ring-4 focus-within:ring-[#d4a843]/15">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-b from-[#f4f4f4] via-[#f4a340] to-[#159447] text-xl" aria-hidden="true">🇮🇳</span>
                     <input
                       type="tel"
                       value={phone}
                       onChange={(event) => setPhone(event.target.value)}
-                      placeholder="Phone number"
-                      className="w-full rounded-2xl bg-white px-5 py-4 text-lg text-[#1d1d1f] shadow-sm outline-none ring-1 ring-black/5 placeholder:text-[#86868b] focus:ring-[#0071e3]"
+                      placeholder="Registered phone number"
+                      aria-label="Registered phone number"
+                      autoComplete="tel"
+                      className="min-w-0 flex-1 bg-transparent py-3.5 text-base text-[#1a2a3a] outline-none placeholder:text-slate-400"
                       required
-                      disabled={loading}
+                      disabled={otpSent || loading}
                     />
+                  </label>
+
+                  {!otpSent && (
                     <select
                       value={role}
                       onChange={(event) => setRole(event.target.value)}
-                      className="w-full rounded-2xl bg-white px-5 py-4 text-[#1d1d1f] shadow-sm outline-none ring-1 ring-black/5 focus:ring-[#0071e3]"
+                      aria-label="Account type"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-base text-[#1a2a3a] outline-none transition focus:border-[#d4a843] focus:ring-4 focus:ring-[#d4a843]/15"
                     >
                       <option value="homeowner">Homeowner</option>
                       <option value="designer">Designer / Contractor</option>
                     </select>
-                  </>
-                )}
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="Email address"
-                  className="w-full rounded-2xl bg-white px-5 py-4 text-lg text-[#1d1d1f] shadow-sm outline-none ring-1 ring-black/5 placeholder:text-[#86868b] focus:ring-[#0071e3]"
-                  required
-                  disabled={loading}
-                />
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="Password"
-                    className="w-full rounded-2xl bg-white px-5 py-4 pr-20 text-lg text-[#1d1d1f] shadow-sm outline-none ring-1 ring-black/5 placeholder:text-[#86868b] focus:ring-[#0071e3]"
-                    required
-                    disabled={loading}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((visible) => !visible)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#0071e3] hover:underline"
-                  >
-                    {showPassword ? 'Hide' : 'Show'}
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <label className="flex items-center gap-3 rounded-2xl bg-white px-4 py-2 shadow-sm ring-1 ring-black/5 focus-within:ring-[#0071e3]">
-                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gradient-to-b from-[#f4f4f4] via-[#f4a340] to-[#159447] text-xl" aria-hidden="true">🇮🇳</span>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                    placeholder="Registered Phone number"
-                    className="min-w-0 flex-1 bg-transparent py-4 text-lg text-[#1d1d1f] outline-none placeholder:text-[#86868b]"
-                    required
-                    disabled={otpSent || loading}
-                  />
-                </label>
+                  )}
 
-                {!otpSent && (
-                  <select
-                    value={role}
-                    onChange={(event) => setRole(event.target.value)}
-                    className="w-full rounded-2xl bg-white px-5 py-4 text-[#1d1d1f] shadow-sm outline-none ring-1 ring-black/5 focus:ring-[#0071e3]"
-                  >
-                    <option value="homeowner">Homeowner</option>
-                    <option value="designer">Designer / Contractor</option>
-                  </select>
-                )}
+                  {otpSent && (
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={otp}
+                      onChange={(event) => setOtp(event.target.value)}
+                      placeholder="Enter the OTP sent to your phone"
+                      aria-label="One-time password"
+                      autoComplete="one-time-code"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-base text-[#1a2a3a] outline-none transition placeholder:text-slate-400 focus:border-[#d4a843] focus:ring-4 focus:ring-[#d4a843]/15"
+                      required
+                      disabled={loading}
+                    />
+                  )}
+                </>
+              )}
 
-                {otpSent && (
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={otp}
-                    onChange={(event) => setOtp(event.target.value)}
-                    placeholder="Enter the OTP sent to your phone"
-                    className="w-full rounded-2xl bg-white px-5 py-4 text-lg text-[#1d1d1f] shadow-sm outline-none ring-1 ring-black/5 placeholder:text-[#86868b] focus:ring-[#0071e3]"
-                    required
-                    disabled={loading}
-                  />
-                )}
-              </>
-            )}
+              {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+              {success && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{success}</p>}
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            {success && <p className="text-sm text-green-600">{success}</p>}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="mx-auto block rounded-full bg-[#0071e3] px-12 py-4 text-lg font-semibold text-white shadow-[0_8px_20px_rgba(0,113,227,0.25)] transition hover:bg-[#0077ed] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? 'Please wait...' : (loginMethod === 'email' ? 'Sign In' : (otpSent ? 'Verify OTP' : 'Send OTP'))}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-xl bg-[#d4a843] px-6 py-4 text-base font-bold text-[#1a2a3a] shadow-lg shadow-[#d4a843]/30 transition duration-200 hover:-translate-y-0.5 hover:bg-[#e1b951] hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#d4a843]/30 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? 'Please wait...' : loginMethod === 'email'
+                  ? isSignup ? 'Create Account' : 'Sign In'
+                  : otpSent ? 'Verify OTP' : 'Send OTP'}
+              </button>
+            </form>
           )}
 
           {!forgotPassword && loginMethod === 'email' && !isSignup && (
             <button
               type="button"
               onClick={() => { setForgotPassword(true); setError(''); setSuccess('') }}
-              className="mx-auto mt-5 block text-sm font-semibold text-[#0071e3] hover:underline"
+              className="mt-4 w-full rounded-xl px-3 py-2 text-sm font-semibold text-[#8c6a22] transition hover:bg-amber-50"
             >
               Forgot password?
             </button>
@@ -349,19 +379,22 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => { setOtpSent(false); setOtp(''); setError('') }}
-              className="mx-auto mt-6 block text-sm text-[#0071e3] hover:underline"
+              className="mt-4 w-full rounded-xl px-3 py-2 text-sm font-semibold text-[#8c6a22] transition hover:bg-amber-50"
             >
               Change phone number
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={() => { setIsSignup((current) => !current); setOtpSent(false); setOtp(''); setError(''); setSuccess('') }}
-            className="mx-auto mt-6 block text-sm text-[#0071e3] hover:underline"
-          >
-            {isSignup ? 'Already have an account? Sign in' : 'New to HexBridge? Create an account'}
-          </button>
+          {!forgotPassword && (
+            <button
+              type="button"
+              onClick={() => { setIsSignup((current) => !current); setOtpSent(false); setOtp(''); setError(''); setSuccess('') }}
+              className="mt-3 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-[#1a2a3a] transition hover:border-[#d4a843] hover:bg-amber-50/50"
+            >
+              {isSignup ? 'Already have an account? Sign in' : 'New to HexBridge? Create an account'}
+            </button>
+          )}
+
         </section>
       </div>
     </main>

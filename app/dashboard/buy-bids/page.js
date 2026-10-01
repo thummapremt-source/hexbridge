@@ -197,7 +197,7 @@ export default function BuyBidsPage() {
   return (
     <div className="flex min-h-screen bg-gray-100">
       <Sidebar />
-      <main className="mx-auto max-w-6xl flex-1 p-6 ml-64">
+      <main className="mx-auto max-w-6xl flex-1 p-6 lg:ml-64">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.22em] text-[#d4a843] font-semibold">HexBridge</p>

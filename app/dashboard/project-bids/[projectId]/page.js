@@ -186,7 +186,7 @@ export default function ProjectBidsPage() {
   return (
     <div className="min-h-screen bg-gray-100 flex">
       <Sidebar />
-      <div className="flex-1 p-6 ml-64">
+      <div className="flex-1 p-6 lg:ml-64">
       {toast && (
         <div className={`fixed top-5 right-5 z-10 rounded-lg px-5 py-3 text-white shadow-xl ${toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
           {toast.message}

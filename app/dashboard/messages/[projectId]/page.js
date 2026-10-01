@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../../../lib/supabaseClient'
 import { useParams, useRouter } from 'next/navigation'
+import Sidebar from '../../../../components/Sidebar'
 
 const formatDateTime = (date) => new Date(date).toLocaleString('en-IN', {
   day: 'numeric',
@@ -169,60 +170,63 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-3xl mx-auto">
-        <button
-          onClick={() => router.push('/dashboard/messages')}
-          className="text-[#1a2a3a] font-semibold hover:underline mb-5"
-        >
-          Back to Messages
-        </button>
+    <div className="min-h-screen bg-gray-100 lg:flex">
+      <Sidebar />
+      <main className="min-w-0 flex-1 p-4 sm:p-6 lg:ml-64">
+        <div className="mx-auto max-w-3xl">
+          <button
+            onClick={() => router.push('/dashboard/messages')}
+            className="mb-5 font-semibold text-[#1a2a3a] hover:underline"
+          >
+            Back to Messages
+          </button>
 
-        <div className="bg-white rounded-2xl shadow-xl p-6">
-          <h1 className="text-2xl font-bold text-[#1a2a3a]">{project.title}</h1>
-          <p className="text-sm text-gray-500 mt-1">Private project conversation</p>
+          <div className="rounded-2xl bg-white p-4 shadow-xl sm:p-6">
+            <h1 className="break-words text-2xl font-bold text-[#1a2a3a]">{project.title}</h1>
+            <p className="mt-1 text-sm text-gray-500">Private project conversation</p>
 
-          <div className="mt-6 h-[28rem] overflow-y-auto border rounded-lg p-4 space-y-4 bg-gray-50">
-            {messages.length === 0 ? (
-              <p className="text-center text-gray-500 mt-40">No messages yet. Start the conversation.</p>
-            ) : messages.map((item) => {
-              const isMine = item.sender_id === user.id
+            <div className="mt-6 h-[min(28rem,55dvh)] min-h-64 space-y-4 overflow-y-auto rounded-lg border bg-gray-50 p-3 sm:p-4">
+              {messages.length === 0 ? (
+                <p className="mt-20 text-center text-gray-500">No messages yet. Start the conversation.</p>
+              ) : messages.map((item) => {
+                const isMine = item.sender_id === user.id
 
-              return (
-                <div key={item.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] rounded-lg px-4 py-3 ${isMine ? 'bg-[#1a2a3a] text-white' : 'bg-white text-gray-700 shadow'}`}>
-                    <p className="text-sm">{item.message}</p>
-                    <p className={`text-xs mt-2 ${isMine ? 'text-gray-300' : 'text-gray-500'}`}>
-                      {isMine ? 'You' : (item.profiles?.full_name || 'Participant')} · {formatDateTime(item.created_at)}
-                    </p>
+                return (
+                  <div key={item.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[90%] break-words rounded-lg px-4 py-3 sm:max-w-[80%] ${isMine ? 'bg-[#1a2a3a] text-white' : 'bg-white text-gray-700 shadow'}`}>
+                      <p className="text-sm">{item.message}</p>
+                      <p className={`mt-2 text-xs ${isMine ? 'text-gray-300' : 'text-gray-500'}`}>
+                        {isMine ? 'You' : (item.profiles?.full_name || 'Participant')} · {formatDateTime(item.created_at)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
+
+            {error && <p className="mt-4 text-red-500">{error}</p>}
+
+            <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <input
+                type="text"
+                value={messageText}
+                onChange={(event) => setMessageText(event.target.value)}
+                placeholder="Write a message..."
+                className="min-w-0 flex-1 rounded-lg border p-3"
+                disabled={sending}
+                required
+              />
+              <button
+                type="submit"
+                disabled={sending || !messageText.trim()}
+                className="rounded-lg bg-[#d4a843] px-6 py-3 font-bold text-white transition hover:bg-[#c49a3a] disabled:opacity-50"
+              >
+                {sending ? 'Sending...' : 'Send'}
+              </button>
+            </form>
           </div>
-
-          {error && <p className="mt-4 text-red-500">{error}</p>}
-
-          <form onSubmit={handleSubmit} className="mt-5 flex flex-col sm:flex-row gap-3">
-            <input
-              type="text"
-              value={messageText}
-              onChange={(event) => setMessageText(event.target.value)}
-              placeholder="Write a message..."
-              className="flex-1 p-3 border rounded-lg"
-              disabled={sending}
-              required
-            />
-            <button
-              type="submit"
-              disabled={sending || !messageText.trim()}
-              className="bg-[#d4a843] text-white px-6 py-3 rounded-lg font-bold hover:bg-[#c49a3a] transition disabled:opacity-50"
-            >
-              {sending ? 'Sending...' : 'Send'}
-            </button>
-          </form>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

@@ -19,6 +19,36 @@ body {
   letter-spacing: 0;
 }
 
+html,
+body {
+  min-height: 100%;
+  width: 100%;
+}
+
+body {
+  margin: 0;
+  overflow-x: clip;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+input,
+select {
+  min-height: 44px;
+}
+
+img,
+video {
+  height: auto;
+  max-width: 100%;
+}
+
 @layer utilities {
   [class~="bg-gray-100"] {
     background-color: #f3f4f6 !important;
@@ -76,5 +106,38 @@ body {
 
   [class*="focus-within:ring-[#0071e3]"] {
     --tw-ring-color: #d4a843 !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  body:has(#hexbridge-sidebar) .min-h-screen:has(#hexbridge-sidebar) {
+    padding-top: calc(env(safe-area-inset-top) + 4rem);
+  }
+
+  body:has(#hexbridge-sidebar) main {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 639px) {
+  h1.text-5xl {
+    font-size: 2.5rem;
+    line-height: 1.1;
+  }
+
+  h1.text-4xl {
+    font-size: 2rem;
+    line-height: 1.15;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

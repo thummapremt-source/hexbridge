@@ -257,7 +257,7 @@ function PlaceBidContent() {
   return (
     <div className="min-h-screen bg-gray-100 flex">
       <Sidebar />
-      <div className="flex-1 p-6 ml-64">
+      <div className="flex-1 p-6 lg:ml-64">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
           <h1 className="text-2xl font-bold text-[#1a2a3a]">📋 Place a Bid</h1>

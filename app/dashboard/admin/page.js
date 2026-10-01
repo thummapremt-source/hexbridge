@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
 import { useRouter } from 'next/navigation'
+import Sidebar from '../../../components/Sidebar'
 
 const formatProjectType = (projectType) => {
   if (!projectType) return 'Not specified'
@@ -25,10 +26,16 @@ export default function AdminPanel() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [projectSaving, setProjectSaving] = useState(false)
+  const [deletingProjectId, setDeletingProjectId] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [projects, setProjects] = useState([])
   const [projectsLoading, setProjectsLoading] = useState(true)
   const [projectsError, setProjectsError] = useState('')
+  const [projectActionError, setProjectActionError] = useState('')
+  const [projectActionNotice, setProjectActionNotice] = useState('')
+  const [editingProjectId, setEditingProjectId] = useState(null)
+  const [projectForm, setProjectForm] = useState(null)
   const [settings, setSettings] = useState({
     single_room_fee: 150,
     fee_1bhk: 250,
@@ -133,6 +140,102 @@ export default function AdminPanel() {
     setSettings(prev => ({ ...prev, [name]: parseInt(value) || 0 }))
   }
 
+  const startEditingProject = (project) => {
+    setProjectActionError('')
+    setProjectActionNotice('')
+    setEditingProjectId(project.id)
+    setProjectForm({
+      title: project.title || '',
+      description: project.description || '',
+      project_type: project.project_type || '',
+      location: project.location || '',
+      state: project.state || '',
+      mandal: project.mandal || '',
+      project_tier: project.project_tier || '',
+      timeline_days: project.timeline_days ?? '',
+      status: project.status || 'open',
+    })
+  }
+
+  const handleProjectFormChange = (event) => {
+    const { name, value } = event.target
+    setProjectForm((current) => ({ ...current, [name]: value }))
+  }
+
+  const handleSaveProject = async (event) => {
+    event.preventDefault()
+    if (!editingProjectId || !projectForm) return
+
+    setProjectSaving(true)
+    setProjectActionError('')
+    setProjectActionNotice('')
+
+    try {
+      const { data: updatedProject, error: updateError } = await supabase
+        .from('projects')
+        .update({
+          title: projectForm.title.trim(),
+          description: projectForm.description.trim(),
+          project_type: projectForm.project_type.trim(),
+          location: projectForm.location.trim(),
+          state: projectForm.state.trim(),
+          mandal: projectForm.mandal.trim(),
+          project_tier: projectForm.project_tier.trim() || null,
+          timeline_days: projectForm.timeline_days === '' ? null : Number(projectForm.timeline_days),
+          status: projectForm.status.trim(),
+        })
+        .eq('id', editingProjectId)
+        .select('*')
+        .single()
+
+      if (updateError) throw updateError
+
+      setProjects((current) => current.map((project) => (
+        project.id === editingProjectId ? { ...project, ...updatedProject } : project
+      )))
+      setEditingProjectId(null)
+      setProjectForm(null)
+      setProjectActionNotice('Project updated successfully.')
+    } catch (updateError) {
+      console.error('Error updating project:', updateError)
+      setProjectActionError(updateError?.message || 'Unable to update this project. Please try again.')
+    } finally {
+      setProjectSaving(false)
+    }
+  }
+
+  const handleDeleteProject = async (project) => {
+    const shouldDelete = window.confirm(
+      `Delete "${project.title}"? This action cannot be undone and may also delete its bids and messages.`
+    )
+    if (!shouldDelete) return
+
+    setDeletingProjectId(project.id)
+    setProjectActionError('')
+    setProjectActionNotice('')
+
+    try {
+      const { error: deleteError } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', project.id)
+
+      if (deleteError) throw deleteError
+
+      setProjects((current) => current.filter((item) => item.id !== project.id))
+      if (editingProjectId === project.id) {
+        setEditingProjectId(null)
+        setProjectForm(null)
+      }
+      setProjectActionNotice('Project deleted successfully.')
+    } catch (deleteError) {
+      console.error('Error deleting project:', deleteError)
+      setProjectActionError(deleteError?.message || 'Unable to delete this project. Please try again.')
+    } finally {
+      setDeletingProjectId(null)
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSaving(true)
@@ -221,9 +324,11 @@ export default function AdminPanel() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+    <div className="min-h-screen bg-gray-100 lg:flex">
+      <Sidebar initialRole="admin" />
+      <main className="min-w-0 flex-1 p-4 sm:p-6 lg:ml-64">
+      <div className="mx-auto max-w-6xl">
+        <div className="rounded-2xl bg-white p-5 shadow-xl sm:p-8">
           <h1 className="text-3xl font-bold text-[#1a2a3a] mb-2">⚙️ Admin Panel</h1>
           <p className="text-gray-600 mb-6">Set bid fees for different project types.</p>
 
@@ -240,7 +345,6 @@ export default function AdminPanel() {
                 required
               />
             </div>
-
             <div>
               <label className="block font-semibold mb-1">1 BHK Fee (₹)</label>
               <input
@@ -354,6 +458,16 @@ export default function AdminPanel() {
             <h2 className="text-2xl font-bold text-[#1a2a3a]">All Projects and Bids</h2>
             <p className="mt-1 text-gray-600">Review project details, client mobile numbers, and designer bids.</p>
 
+            {projectActionError && (
+              <p role="alert" className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                {projectActionError}
+              </p>
+            )}
+            {projectActionNotice && (
+              <p role="status" className="mt-5 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+                {projectActionNotice}
+              </p>
+            )}
             {projectsLoading && <p className="mt-5 text-gray-600">Loading project data...</p>}
             {projectsError && <p className="mt-5 rounded-lg bg-red-50 p-4 text-sm text-red-700">{projectsError}</p>}
             {!projectsLoading && !projectsError && projects.length === 0 && (
@@ -364,14 +478,157 @@ export default function AdminPanel() {
               {projects.map((project) => (
                 <article key={project.id} className="rounded-xl border border-gray-200 p-5">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <h3 className="text-xl font-bold text-[#1a2a3a]">{project.title}</h3>
+                    <div className="min-w-0">
+                      <h3 className="break-words text-xl font-bold text-[#1a2a3a]">{project.title}</h3>
                       <p className="mt-1 text-sm text-gray-500">Posted {formatDate(project.created_at)}</p>
                     </div>
-                    <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold capitalize text-[#1a2a3a]">
-                      {project.status || 'open'}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold capitalize text-[#1a2a3a]">
+                        {project.status || 'open'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => editingProjectId === project.id
+                          ? (setEditingProjectId(null), setProjectForm(null))
+                          : startEditingProject(project)}
+                        className="rounded-lg border border-[#1a2a3a] px-4 py-2 text-sm font-semibold text-[#1a2a3a] hover:bg-gray-50"
+                      >
+                        {editingProjectId === project.id ? 'Cancel edit' : 'Edit project'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteProject(project)}
+                        disabled={deletingProjectId === project.id}
+                        className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+                      >
+                        {deletingProjectId === project.id ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </div>
                   </div>
+
+                  {editingProjectId === project.id && projectForm && (
+                    <form onSubmit={handleSaveProject} className="mt-5 space-y-4 rounded-xl border border-[#d4a843]/40 bg-amber-50/40 p-4 sm:p-5">
+                      <h4 className="font-bold text-[#1a2a3a]">Edit project details</h4>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="sm:col-span-2">
+                          <label htmlFor={`project-title-${project.id}`} className="mb-1 block text-sm font-semibold text-[#1a2a3a]">Title</label>
+                          <input
+                            id={`project-title-${project.id}`}
+                            name="title"
+                            value={projectForm.title}
+                            onChange={handleProjectFormChange}
+                            maxLength={200}
+                            required
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={`project-type-${project.id}`} className="mb-1 block text-sm font-semibold text-[#1a2a3a]">Project type</label>
+                          <input
+                            id={`project-type-${project.id}`}
+                            name="project_type"
+                            value={projectForm.project_type}
+                            onChange={handleProjectFormChange}
+                            required
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={`project-status-${project.id}`} className="mb-1 block text-sm font-semibold text-[#1a2a3a]">Status</label>
+                          <input
+                            id={`project-status-${project.id}`}
+                            name="status"
+                            value={projectForm.status}
+                            onChange={handleProjectFormChange}
+                            required
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={`project-state-${project.id}`} className="mb-1 block text-sm font-semibold text-[#1a2a3a]">State</label>
+                          <input
+                            id={`project-state-${project.id}`}
+                            name="state"
+                            value={projectForm.state}
+                            onChange={handleProjectFormChange}
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={`project-mandal-${project.id}`} className="mb-1 block text-sm font-semibold text-[#1a2a3a]">Mandal / City</label>
+                          <input
+                            id={`project-mandal-${project.id}`}
+                            name="mandal"
+                            value={projectForm.mandal}
+                            onChange={handleProjectFormChange}
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2"
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label htmlFor={`project-location-${project.id}`} className="mb-1 block text-sm font-semibold text-[#1a2a3a]">Location</label>
+                          <input
+                            id={`project-location-${project.id}`}
+                            name="location"
+                            value={projectForm.location}
+                            onChange={handleProjectFormChange}
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={`project-tier-${project.id}`} className="mb-1 block text-sm font-semibold text-[#1a2a3a]">Project tier</label>
+                          <input
+                            id={`project-tier-${project.id}`}
+                            name="project_tier"
+                            value={projectForm.project_tier}
+                            onChange={handleProjectFormChange}
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={`project-timeline-${project.id}`} className="mb-1 block text-sm font-semibold text-[#1a2a3a]">Timeline (days)</label>
+                          <input
+                            id={`project-timeline-${project.id}`}
+                            name="timeline_days"
+                            type="number"
+                            min="1"
+                            max="365"
+                            value={projectForm.timeline_days}
+                            onChange={handleProjectFormChange}
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2"
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label htmlFor={`project-description-${project.id}`} className="mb-1 block text-sm font-semibold text-[#1a2a3a]">Description</label>
+                          <textarea
+                            id={`project-description-${project.id}`}
+                            name="description"
+                            value={projectForm.description}
+                            onChange={handleProjectFormChange}
+                            rows={4}
+                            required
+                            className="w-full resize-y rounded-lg border border-gray-300 bg-white px-3 py-2"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-3 sm:flex-row">
+                        <button
+                          type="submit"
+                          disabled={projectSaving}
+                          className="rounded-lg bg-[#d4a843] px-5 py-3 font-bold text-white hover:bg-[#c49a3a] disabled:opacity-60"
+                        >
+                          {projectSaving ? 'Saving...' : 'Save changes'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setEditingProjectId(null); setProjectForm(null) }}
+                          disabled={projectSaving}
+                          className="rounded-lg border border-gray-300 px-5 py-3 font-semibold text-[#1a2a3a]"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  )}
 
                   <div className="mt-4 grid gap-3 text-sm text-gray-600 sm:grid-cols-2">
                     <p><strong className="text-[#1a2a3a]">Client:</strong> {project.homeowner?.full_name || 'Not available'}</p>
@@ -431,6 +688,7 @@ export default function AdminPanel() {
           </button>
         </div>
       </div>
+      </main>
     </div>
   )
 }

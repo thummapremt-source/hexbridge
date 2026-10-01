@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
 import { useRouter } from 'next/navigation'
+import Sidebar from '../../../components/Sidebar'
 
 const formatDate = (date) => new Date(date).toLocaleDateString('en-IN', {
   day: 'numeric',
@@ -142,41 +143,44 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-[#1a2a3a] mb-6">Messages</h1>
+    <div className="min-h-screen bg-gray-100 lg:flex">
+      <Sidebar />
+      <main className="min-w-0 flex-1 p-4 sm:p-6 lg:ml-64">
+        <div className="mx-auto max-w-4xl">
+          <h1 className="mb-6 text-3xl font-bold text-[#1a2a3a]">Messages</h1>
 
-        {error && <div className="bg-white rounded-2xl shadow-xl p-6 text-red-500">{error}</div>}
+          {error && <div className="rounded-2xl bg-white p-6 text-red-500 shadow-xl">{error}</div>}
 
-        {!error && conversations.length === 0 && (
-          <div className="bg-white rounded-2xl shadow-xl p-6 text-center text-gray-600">
-            No conversations yet. Messages are available after a bid is accepted.
-          </div>
-        )}
+          {!error && conversations.length === 0 && (
+            <div className="rounded-2xl bg-white p-6 text-center text-gray-600 shadow-xl">
+              No conversations yet. Messages are available after a bid is accepted.
+            </div>
+          )}
 
-        <div className="space-y-5">
-          {conversations.map((conversation) => (
-            <button
-              key={conversation.projectId}
-              type="button"
-              onClick={() => router.push(`/dashboard/messages/${conversation.projectId}`)}
-              className="w-full text-left bg-white rounded-2xl shadow-xl p-6 hover:shadow-2xl transition"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                <div>
-                  <h2 className="text-xl font-bold text-[#1a2a3a]">{conversation.title}</h2>
-                  <p className="text-sm text-gray-500 mt-1">Conversation with {conversation.designerName}</p>
+          <div className="space-y-5">
+            {conversations.map((conversation) => (
+              <button
+                key={conversation.projectId}
+                type="button"
+                onClick={() => router.push(`/dashboard/messages/${conversation.projectId}`)}
+                className="w-full rounded-2xl bg-white p-4 text-left shadow-xl transition hover:shadow-2xl sm:p-6"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <h2 className="break-words text-xl font-bold text-[#1a2a3a]">{conversation.title}</h2>
+                    <p className="mt-1 text-sm text-gray-500">Conversation with {conversation.designerName}</p>
+                  </div>
+                  <span className="shrink-0 text-sm text-gray-500">{formatDate(conversation.latestMessage.created_at)}</span>
                 </div>
-                <span className="text-sm text-gray-500">{formatDate(conversation.latestMessage.created_at)}</span>
-              </div>
-              <p className="text-gray-600 mt-4 line-clamp-2">{conversation.latestMessage.message}</p>
-              {!conversation.latestMessage.is_read && (
-                <span className="inline-block mt-3 text-sm font-bold text-[#d4a843]">Unread message</span>
-              )}
-            </button>
-          ))}
+                <p className="mt-4 line-clamp-2 break-words text-gray-600">{conversation.latestMessage.message}</p>
+                {!conversation.latestMessage.is_read && (
+                  <span className="mt-3 inline-block text-sm font-bold text-[#d4a843]">Unread message</span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

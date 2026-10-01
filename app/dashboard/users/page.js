@@ -115,7 +115,7 @@ export default function UsersPage() {
         router.push('/login')
       }} />
 
-      <main className="flex-1 p-6 lg:p-8">
+      <main className="flex-1 p-6 lg:ml-64 lg:p-8">
         <div className="max-w-6xl mx-auto">
           <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
             <h1 className="text-3xl font-bold text-[#1a2a3a]">Users</h1>

@@ -106,7 +106,7 @@ export default function MyProjectsPage() {
       <div className="min-h-screen bg-gray-100 flex">
         <Sidebar role="homeowner" onLogout={handleLogout} />
 
-        <main className="flex-1 p-6 md:p-8">
+        <main className="flex-1 p-6 md:p-8 lg:ml-64">
           <div className="max-w-4xl mx-auto">
             <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
               <h1 className="text-2xl font-bold text-[#1a2a3a]">Access Denied</h1>
@@ -121,7 +121,7 @@ export default function MyProjectsPage() {
     <div className="min-h-screen bg-gray-100 flex">
       <Sidebar role="homeowner" onLogout={handleLogout} />
 
-      <main className="flex-1 p-6 md:p-8">
+      <main className="flex-1 p-6 md:p-8 lg:ml-64">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
             <div>

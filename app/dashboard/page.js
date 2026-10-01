@@ -32,7 +32,7 @@ export default function Dashboard() {
 
         if (!profile) {
           const fallbackName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'New User'
-          const fallbackRole = user.user_metadata?.role || 'homeowner'
+          const fallbackRole = user.user_metadata?.role === 'designer' ? 'designer' : 'homeowner'
 
           const { data: insertedProfile, error: insertError } = await supabase
             .from('profiles')
@@ -98,7 +98,7 @@ export default function Dashboard() {
     <div className="flex min-h-screen bg-gray-100">
       <Sidebar initialRole={profile.role} />
 
-      <main className="flex-1 p-6 ml-64">
+      <main className="flex-1 p-6 lg:ml-64">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <h1 className="text-3xl font-bold text-[#1a2a3a]">

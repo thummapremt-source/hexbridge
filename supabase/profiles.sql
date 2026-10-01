@@ -107,7 +107,11 @@ begin
     new.id,
     coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
     new.phone,
-    coalesce(new.raw_user_meta_data->>'role', 'homeowner')
+    case
+      when new.raw_user_meta_data->>'role' in ('homeowner', 'designer')
+        then new.raw_user_meta_data->>'role'
+      else 'homeowner'
+    end
   )
   on conflict (id) do update
     set full_name = excluded.full_name,
