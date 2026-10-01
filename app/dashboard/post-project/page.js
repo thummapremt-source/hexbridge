@@ -5,14 +5,14 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabaseClient'
 import Sidebar from '../../../components/Sidebar'
 import { INDIAN_STATES } from '../../../lib/indianStates'
+import { PROJECT_TYPES } from '../../../lib/projectTypes'
 
 const initialForm = {
   title: '',
   description: '',
   state: '',
   mandal: '',
-  project_type: 'home_interiors',
-  hardware_type: 'soft_close',
+  project_type: '1bhk',
   project_tier: 'essentials',
   timeline_days: '56',
 }
@@ -140,9 +140,7 @@ export default function PostProjectPage() {
         location: `${form.mandal.trim()}, ${form.state}`,
         state: form.state,
         mandal: form.mandal.trim(),
-        project_type: form.project_type === 'hardware'
-          ? `hardware_${form.hardware_type}`
-          : form.project_type,
+        project_type: form.project_type,
         project_tier: form.project_tier,
         timeline_days: Number(form.timeline_days) || 56,
         floor_plan_url: floorPlanUrl,
@@ -162,7 +160,11 @@ export default function PostProjectPage() {
       router.push('/dashboard/my-projects')
     } catch (err) {
       console.error('Project creation failed:', err)
-      setError(err?.message || 'Project could not be posted. Please try again.')
+      setError(
+        err?.code === '23514' && err?.message?.includes('projects_project_type_check')
+          ? 'Please select a supported home size and try posting again.'
+          : err?.message || 'Project could not be posted. Please try again.',
+      )
     } finally {
       setSaving(false)
     }
@@ -236,7 +238,7 @@ export default function PostProjectPage() {
               </div>
 
               <div>
-                <label htmlFor="project_type" className="mb-2 block text-sm font-semibold text-gray-200">Project Type</label>
+                <label htmlFor="project_type" className="mb-2 block text-sm font-semibold text-gray-200">Project Type / Home Size</label>
                 <select
                   id="project_type"
                   name="project_type"
@@ -244,29 +246,11 @@ export default function PostProjectPage() {
                   onChange={updateField}
                   className="w-full rounded-xl border border-white/15 bg-[#101820] px-4 py-3 text-white outline-none focus:border-[#d4a843]"
                 >
-                  <option value="home_interiors">Home Interiors</option>
-                  <option value="renovations">Renovations</option>
-                  <option value="commercial_space">Commercial Space</option>
-                  <option value="hardware">Hardware</option>
-                  <option value="others">Others</option>
+                  {PROJECT_TYPES.map((type) => (
+                    <option key={type.value} value={type.value}>{type.label}</option>
+                  ))}
                 </select>
               </div>
-
-              {form.project_type === 'hardware' && (
-                <div>
-                  <label htmlFor="hardware_type" className="mb-2 block text-sm font-semibold text-gray-200">Hardware Type</label>
-                  <select
-                    id="hardware_type"
-                    name="hardware_type"
-                    value={form.hardware_type}
-                    onChange={updateField}
-                    className="w-full rounded-xl border border-white/15 bg-[#101820] px-4 py-3 text-white outline-none focus:border-[#d4a843]"
-                  >
-                    <option value="soft_close">Soft Close</option>
-                    <option value="standard">Standard</option>
-                  </select>
-                </div>
-              )}
 
               <div>
                 <label htmlFor="state" className="mb-2 block text-sm font-semibold text-gray-200">State</label>

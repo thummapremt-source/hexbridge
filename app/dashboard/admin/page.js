@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Sidebar from '../../../components/Sidebar'
+import { PROJECT_TYPES } from '../../../lib/projectTypes'
 
 const formatProjectType = (projectType) => {
   if (!projectType) return 'Not specified'
@@ -524,14 +525,18 @@ export default function AdminPanel() {
                         </div>
                         <div>
                           <label htmlFor={`project-type-${project.id}`} className="mb-1 block text-sm font-semibold text-[#1a2a3a]">Project type</label>
-                          <input
+                          <select
                             id={`project-type-${project.id}`}
                             name="project_type"
                             value={projectForm.project_type}
                             onChange={handleProjectFormChange}
                             required
                             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2"
-                          />
+                          >
+                            {PROJECT_TYPES.map((type) => (
+                              <option key={type.value} value={type.value}>{type.label}</option>
+                            ))}
+                          </select>
                         </div>
                         <div>
                           <label htmlFor={`project-status-${project.id}`} className="mb-1 block text-sm font-semibold text-[#1a2a3a]">Status</label>
